@@ -191,3 +191,8 @@ subsets = [all_images[i:i + subset_size] for i in range(0, len(all_images), subs
 for i, subset in enumerate(subsets):
     print(f"Subset {i+1}: {len(subset)} images")
 
+# 2. Choose a subset to use in the remaining steps.
+chosen_subset = subsets[0]
+
+# 3. You should now have 42 images.
+print("Total images in chosen subset:", len(chosen_subset))
