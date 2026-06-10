@@ -3,6 +3,8 @@ import os
 import cv2
 import numpy as np
 
+rng = np.random.default_rng(seed=42)
+
 image = cv2.imread('HW1_IMG_CS898BA.png')
 print(image.shape)
 
@@ -167,7 +169,7 @@ print("Total images in directory after transformations:", len([f for f in os.lis
 # 8. Apply a Gaussian blur to each image using the levels of sigma: 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5. Discuss how the level of sigma changes the image. Save each of those images to new files.
 sigma_values = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
 for f in os.listdir('.'):
-    if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png'):
+    if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png') and 'blurred' not in f:
         img = cv2.imread(f)
         for sigma in sigma_values:
             blurred_img = cv2.GaussianBlur(img, (0, 0), sigmaX=sigma, sigmaY=sigma)
@@ -179,3 +181,13 @@ for f in os.listdir('.'):
 
 # 9. You should now have 168 images.
 print("Total images in directory after blurring:", len([f for f in os.listdir('.') if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png')]))
+
+# Part 3:
+# 1. Randomly create 4 equally sized subsets of the images from part 2.
+all_images = [f for f in os.listdir('.') if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png')]
+rng.shuffle(all_images)
+subset_size = len(all_images) // 4
+subsets = [all_images[i:i + subset_size] for i in range(0, len(all_images), subset_size)]
+for i, subset in enumerate(subsets):
+    print(f"Subset {i+1}: {len(subset)} images")
+

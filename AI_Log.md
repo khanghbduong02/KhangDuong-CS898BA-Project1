@@ -5,3 +5,4 @@
 | 06/09/2026 10:00 PM | translation, rotation, scaling, or shear opencv image | Google AI Mode | Code for each transformation | Randomly apply transformation with random value |
 | 06/09/2026 11:23 PM | Finish the transformations_dict. Generate transformations randomly similar to the original. Each transformation need at least 2 transforms. For shear, the first three-point is always top-left, top-right, and bottom-left. Give me the second three-point. These numbers are multiplied with width and height later during transformation. The values for rotate, scale, and shear can be real numbers. | Claude | dictionary with random transformations for other images | Apply the dictionary |
 | 06/10/2026 1:17 AM | gaussian blur opencv | Google AI Mode | Code for gaussian blur | Apply Gaussian Blur |
+| 06/10/2026 3:02 AM | how to set random seed for np random shuffle? | Google AI Mode | NumPy Generator API for setting the seed | Fix irreproducible problem for NumPy Shuffle |
