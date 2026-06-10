@@ -1,0 +1,7 @@
+| Date and Time | Prompt | Tool | Response Synopsis | Change |
+| --- | --- | --- | --- | --- |
+| 06/09/2026 8:33 PM | how to convert opencv image to binary image with adaptive thresholding | Google AI Mode | Code for binary image with adaptive mean and Gaussian thresholding | Add the code for Adaptive Gaussian Thresholding in |
+| 06/09/2026 8:53 PM | histogram equalization opencv over a channel V for hsv | Google AI Mode | Code for split channels, equalize V channel, and merge back to HSV image | Add the code for this part in |
+| 06/09/2026 10:00 PM | translation, rotation, scaling, or shear opencv image | Google AI Mode | Code for each transformation | Randomly apply transformation with random value |
+| 06/09/2026 11:23 PM | Finish the transformations_dict. Generate transformations randomly similar to the original. Each transformation need at least 2 transforms. For shear, the first three-point is always top-left, top-right, and bottom-left. Give me the second three-point. These numbers are multiplied with width and height later during transformation. The values for rotate, scale, and shear can be real numbers. | Claude | dictionary with random transformations for other images | Apply the dictionary |
+| 06/10/2026 1:17 AM | gaussian blur opencv | Google AI Mode | Code for gaussian blur | Apply Gaussian Blur |
