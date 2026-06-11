@@ -13,3 +13,17 @@ pip install -r requirements.txt
 ```bash
 python -u KhangDuong_HW1.py
 ```
+
+# Output Examples
+
+![HW1_IMG_CS898BA_binary_blurred_sigma1.5_plot.png](plots/HW1_IMG_CS898BA_binary_blurred_sigma1.5_plot.png)
+
+![HW1_IMG_CS898BA_HLS_blurred_sigma1.5_plot.png](plots/HW1_IMG_CS898BA_HLS_blurred_sigma1.5_plot.png)
+
+![HW1_IMG_CS898BA_binary_transformed_2_blurred_sigma3.5_plot.png](plots/HW1_IMG_CS898BA_binary_transformed_2_blurred_sigma3.5_plot.png)
+
+![HW1_IMG_CS898BA_binary_transformed_1_plot.png](plots/HW1_IMG_CS898BA_binary_transformed_1_plot.png)
+
+![HW1_IMG_CS898BA_equalized_transformed_1_blurred_sigma3.0_plot.png](plots/HW1_IMG_CS898BA_equalized_transformed_1_blurred_sigma3.0_plot.png)
+
+![HW1_IMG_CS898BA_CIELAB_blurred_sigma0.5_plot.png](plots/HW1_IMG_CS898BA_CIELAB_blurred_sigma0.5_plot.png)

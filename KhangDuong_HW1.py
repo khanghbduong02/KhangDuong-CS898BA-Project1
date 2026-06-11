@@ -1,9 +1,15 @@
 import os
+import re
+import random
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.gridspec import GridSpec
 
-rng = np.random.default_rng(seed=42)
+SEED = 42
+random.seed(SEED)
+rng = np.random.default_rng(seed=SEED)
 
 # Remove all existing images in the directory that start with 'HW1_IMG_CS898BA' and end with '.png'
 # Except for the original image
@@ -259,5 +265,131 @@ for f in chosen_subset:
 # For this image set, Sobel is the best because it provides clear edges out of the most images, while Laplacian and Prewitt produce more noise and Canny misses some edges in the blurred images. However, for bright images, Prewitt can perform better than Sobel because Sobel produce too many edges.
 
 # 6. Save each image before and after adding edges with each technique.
+# Already done in the code in Part 4.
 
 # 7. You should now have 210 images.
+# Check if the original image is in chosen subset, if not, ignore it in the count since it does not have edge detection applied to it.
+if 'HW1_IMG_CS898BA.png' in chosen_subset:
+    print("Total images in directory after edge detection:", len([f for f in os.listdir('.') if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png')]))
+else:
+    print("Total images in directory after edge detection (excluding original):", len([f for f in os.listdir('.') if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png')]) - 1)
+
+# 8. Create 42, 5-image plots of the input image (from the start of part 3) next to the edge-detected images and output 6 random plots to add to the readme. Include information on what processing techniques were used on the images.
+# Text at the top:
+# Original
+# → BGR (Original), Grayscale, Binary, HSV, CIELAB, HLS, Equalized
+# → Affine(Rot:value°, Scale:value, Translate:[x,y], Shear:[Sx:value,Sy:value])
+# → Gaussian Blur(σ:value)
+# 5 images layout (3x3):
+# _, Sobel Edge, _
+# Laplacian Edge, Input Image, Canny Edge
+# _, Prewitt Edge, _
+COLOR_SPACE_LABEL = {
+    '': 'BGR',
+    'grayscale': 'Grayscale',
+    'binary': 'Binary',
+    'HSV': 'HSV',
+    'CIELAB': 'CIELAB',
+    'HLS': 'HLS',
+    'equalized': 'Equalized',
+}
+BG_COLOR = '#363636'
+TEXT_COLOR = 'white'
+
+def parse_filename(fname):
+    rest = fname.replace('.png', '')[len('HW1_IMG_CS898BA'):].lstrip('_')
+    sigma_match = re.search(r'blurred_sigma([\d.]+)', rest)
+    sigma = float(sigma_match.group(1)) if sigma_match else None
+    rest = re.sub(r'_?blurred_sigma[\d.]+', '', rest)
+    trans_match = re.search(r'transformed_(\d+)', rest)
+    trans_idx = int(trans_match.group(1)) - 1 if trans_match else None
+    rest = re.sub(r'_?transformed_\d+', '', rest)
+    return rest.strip('_'), trans_idx, sigma
+
+def get_transformations(transforms):
+    parts = []
+    for name, val in transforms:
+        if name == 'rotate':
+            parts.append(f'Rot:{val}°')
+        elif name == 'scale':
+            parts.append(f'Scale:{val}')
+        elif name == 'translate':
+            parts.append(f'Trans:[{val[0]},{val[1]}]')
+        elif name == 'shear':
+            parts.append(f'Shear:[Sx:{val[1][1]},Sy:{val[2][0]}]')
+    return 'Affine(' + ', '.join(parts) + ')'
+
+def build_title(fname):
+    cs_key, trans_idx, sigma = parse_filename(fname)
+    lines = ['Original', f'→ {COLOR_SPACE_LABEL[cs_key]}']
+    if trans_idx is not None:
+        lines.append(f'→ {get_transformations(transformations_dict[cs_key][trans_idx])}')
+    if sigma is not None:
+        lines.append(f'→ Gaussian Blur(σ:{sigma})')
+    return '\n'.join(lines)
+
+def to_rgb(im):
+    return cv2.cvtColor(im, cv2.COLOR_BGR2RGB) if im is not None and im.ndim == 3 else im
+
+os.makedirs('plots', exist_ok=True)
+for old_image in os.listdir('plots'):
+    if old_image.endswith('.png'):
+        os.remove(os.path.join('plots', old_image))
+plot_paths = []
+for i, f in enumerate(chosen_subset):
+    img = cv2.imread(f)
+    sobel = cv2.imread(f.replace('.png', '_sobel.png'))
+    laplacian = cv2.imread(f.replace('.png', '_laplacian.png'))
+    canny = cv2.imread(f.replace('.png', '_canny.png'))
+    prewitt = cv2.imread(f.replace('.png', '_prewitt.png'))
+
+    fig = plt.figure(figsize=(10, 12), facecolor=BG_COLOR)
+    fig.text(0.5, 0.97, build_title(f), ha='center', va='top',
+             color=TEXT_COLOR, fontsize=12, family='monospace', linespacing=1.5)
+
+    gs = GridSpec(3, 3, figure=fig, top=0.76, bottom=0.04,
+                  left=0.04, right=0.96, hspace=0.25, wspace=0.1)
+    panels = {
+        (0, 1): ('Sobel Edge', sobel),
+        (1, 0): ('Laplacian Edge', laplacian),
+        (1, 1): ('Input Image', img),
+        (1, 2): ('Canny Edge', canny),
+        (2, 1): ('Prewitt Edge', prewitt),
+    }
+    for (r, c), (title, im) in panels.items():
+        ax = fig.add_subplot(gs[r, c])
+        ax.imshow(to_rgb(im))
+        ax.set_title(title, color=TEXT_COLOR, fontsize=11)
+        ax.set_facecolor(BG_COLOR)
+        ax.axis('off')
+
+    out_path = os.path.join('plots', f.replace('.png', '_plot.png'))
+    fig.savefig(out_path, facecolor=BG_COLOR, dpi=100)
+    plt.close(fig)
+    plot_paths.append(out_path)
+
+readme_samples = random.sample(plot_paths, min(6, len(plot_paths)))
+print('Plots selected for README:')
+for plot in readme_samples:
+    print(' ', plot)
+
+# Update the README to display the selected plots under "# Output Examples".
+README_PATH = 'README.md'
+README_MARKER = '# Output Examples'
+if os.path.exists(README_PATH):
+    with open(README_PATH, 'r', encoding='utf-8') as f:
+        readme_content = f.read()
+    if README_MARKER in readme_content:
+        head, _, _ = readme_content.partition(README_MARKER)
+        image_md = '\n\n' + '\n\n'.join(
+            f'![{os.path.basename(plot)}]({plot.replace(os.sep, "/")})'
+            for plot in readme_samples
+        ) + '\n'
+        new_content = head + README_MARKER + image_md
+        with open(README_PATH, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        print(f'Updated {README_PATH} with {len(readme_samples)} plot images.')
+    else:
+        print(f'Marker "{README_MARKER}" not found in {README_PATH}; README not updated.')
+else:
+    print(f'{README_PATH} not found; skipping README update.')

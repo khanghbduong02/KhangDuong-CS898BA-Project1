@@ -7,4 +7,5 @@
 | 06/10/2026 1:17 AM | gaussian blur opencv | Google AI Mode | Code for gaussian blur | Apply Gaussian Blur (Part 2.8) |
 | 06/10/2026 3:02 AM | how to set random seed for np random shuffle? | Google AI Mode | NumPy Generator API for setting the seed | Fix irreproducible problem for NumPy Shuffle (Part 3.1) |
 | 06/10/2026 8:51 PM | sobel laplacian canny prewitt edge detection with opencv | Google AI Mode | Code for performing edge detections | Apply code to detect edge from images (Part 3.4) |
-| 06/10/2026 9:58 PM | How to tune canny threshold cutoffs? With the current values of 50 and 150, some images have no edge while others have too many edges. DO not apply blur. | Claude | Suggest using median-based auto-Canny | Apply median-based auto-Canny with sigma=0.33 |
+| 06/10/2026 9:58 PM | How to tune canny threshold cutoffs? With the current values of 50 and 150, some images have no edge while others have too many edges. DO not apply blur. | Claude | Suggest using median-based auto-Canny | Apply median-based auto-Canny with sigma=0.33 (Part 3.4) |
+| 06/11/2026 2:38 AM | How to create image that contains align center text at the top and 3x3 images grid with opencv? | Claude | Code for creating image with text and images grid | Apply the code with my functions to create plots in 'plots' folders |
