@@ -5,6 +5,12 @@ import numpy as np
 
 rng = np.random.default_rng(seed=42)
 
+# Remove all existing images in the directory that start with 'HW1_IMG_CS898BA' and end with '.png'
+# Except for the original image
+for f in os.listdir('.'):
+    if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png') and f != 'HW1_IMG_CS898BA.png':
+        os.remove(f)
+
 image = cv2.imread('HW1_IMG_CS898BA.png')
 print(image.shape)
 
@@ -169,7 +175,7 @@ print("Total images in directory after transformations:", len([f for f in os.lis
 # 8. Apply a Gaussian blur to each image using the levels of sigma: 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5. Discuss how the level of sigma changes the image. Save each of those images to new files.
 sigma_values = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
 for f in os.listdir('.'):
-    if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png') and 'blurred' not in f:
+    if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png'):
         img = cv2.imread(f)
         for sigma in sigma_values:
             blurred_img = cv2.GaussianBlur(img, (0, 0), sigmaX=sigma, sigmaY=sigma)
@@ -196,3 +202,62 @@ chosen_subset = subsets[0]
 
 # 3. You should now have 42 images.
 print("Total images in chosen subset:", len(chosen_subset))
+
+# 4. Perform these edge detection techniques on that subset:
+# Remove all other images in the directory that are not in the chosen subset
+for f in os.listdir('.'):
+    if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png') and f not in chosen_subset and f != 'HW1_IMG_CS898BA.png':
+        os.remove(f)
+
+for f in chosen_subset:
+    img = cv2.imread(f)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # a.  Sobel
+    sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=5)
+    sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=5)
+    sobel_magnitude = cv2.magnitude(sobel_x, sobel_y)
+    sobel = cv2.convertScaleAbs(sobel_magnitude)
+    cv2.imwrite(f.replace('.png', '_sobel.png'), sobel)
+
+    # b.  Laplacian
+    laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+    laplacian = cv2.convertScaleAbs(laplacian)
+    cv2.imwrite(f.replace('.png', '_laplacian.png'), laplacian)
+
+    # c.  Canny
+    median = float(np.median(gray))
+    sigma = 0.33
+    lower = int(max(0, (1.0 - sigma) * median))
+    upper = int(min(255, (1.0 + sigma) * median))
+    canny = cv2.Canny(gray, lower, upper)
+    cv2.imwrite(f.replace('.png', '_canny.png'), canny)
+
+    # d.  Prewitt
+    kernel_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32)
+    kernel_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32)
+    prewitt_x = cv2.filter2D(gray, cv2.CV_64F, kernel_x)
+    prewitt_y = cv2.filter2D(gray, cv2.CV_64F, kernel_y)
+    prewitt_magnitude = np.sqrt(prewitt_x**2 + prewitt_y**2)
+    prewitt = cv2.convertScaleAbs(prewitt_magnitude)
+    cv2.imwrite(f.replace('.png', '_prewitt.png'), prewitt)
+
+# 5. Discuss the pros and cons of each edge detection technique and perform an analysis of which of these techniques works best for this image set.
+# Sobel:
+# Pros - Details edges in both horizontal and vertical directions.
+# Cons - May produce thick and/or non-connected edges, sensitive to noise.
+# Laplacian:
+# Pros - Detects edges in all directions, good for finding fine details.
+# Cons - Very sensitive to noise, may produce false edges.
+# Canny:
+# Pros - Good for detecting edges in noisy images, provides thin and connected edges, uses non-maximum suppression.
+# Cons - Requires tuning of threshold cutoffs, may miss weak edges or produce false edges.
+# Prewitt:
+# Pros - Simple and fast, good for detecting edges in clean images.
+# Cons - May produce thicker edges, sensitive to noise.
+
+# For this image set, Sobel is the best because it provides clear edges out of the most images, while Laplacian and Prewitt produce more noise and Canny misses some edges in the blurred images. However, for bright images, Prewitt can perform better than Sobel because Sobel produce too many edges.
+
+# 6. Save each image before and after adding edges with each technique.
+
+# 7. You should now have 210 images.
