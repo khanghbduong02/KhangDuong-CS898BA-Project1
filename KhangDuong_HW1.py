@@ -20,10 +20,10 @@ for f in os.listdir('.'):
 image = cv2.imread('HW1_IMG_CS898BA.png')
 print(image.shape)
 
-blue, green, red = cv2.split(image)
-
 # Part 2:
 # 1. Find and print basic image statistics of the original image for each individual channel (min, max, average, median, mode, skew, range, standard deviation, variance)
+blue, green, red = cv2.split(image)
+
 print("Blue channel:")
 print("    min:", blue.min())
 print("    max:", blue.max())
