@@ -373,19 +373,22 @@ print('Plots selected for README:')
 for plot in readme_samples:
     print(' ', plot)
 
-# Update the README to display the selected plots under "# Output Examples".
+# Update the README to display the selected plots under "# Output Examples",
+# preserving any sections (e.g. "# Discussions") that follow.
 README_PATH = 'README.md'
 README_MARKER = '# Output Examples'
 if os.path.exists(README_PATH):
     with open(README_PATH, 'r', encoding='utf-8') as f:
         readme_content = f.read()
     if README_MARKER in readme_content:
-        head, _, _ = readme_content.partition(README_MARKER)
+        head, _, tail = readme_content.partition(README_MARKER)
+        next_section = re.search(r'^---\s*$', tail[1:], re.MULTILINE)
+        rest = tail[1 + next_section.start():] if next_section else ''
         image_md = '\n\n' + '\n\n'.join(
             f'![{os.path.basename(plot)}]({plot.replace(os.sep, "/")})'
             for plot in readme_samples
-        ) + '\n'
-        new_content = head + README_MARKER + image_md
+        ) + '\n\n'
+        new_content = head + README_MARKER + image_md + rest
         with open(README_PATH, 'w', encoding='utf-8') as f:
             f.write(new_content)
         print(f'Updated {README_PATH} with {len(readme_samples)} plot images.')
