@@ -64,9 +64,35 @@ For each of the 42 subset images, a matplotlib figure is built with:
 All 42 plots are saved to `plots/`, then 6 are randomly sampled (seeded with 42) and injected into this README between the `# Output Examples` and the next `---` separator.
 
 ## HW2 Explanations
+### Libraries and Seed
+The HW2 script uses `os` for the directory cleanup, `cv2` (OpenCV) for all image processing, and `numpy` for array math and the K-Means input/output reshaping.
+`SEED = 42` is fed into `cv2.setRNGSeed(SEED)` so the internal RNG that `cv2.kmeans` relies on for centroid initialization is reproducible across runs.
 
+### Clean directory
+Same as HW1: everything matching `HW1_IMG_CS898BA*.png` is deleted **except** the original `HW1_IMG_CS898BA.png` so each run starts clean.
 
----
+### Part 2 — Multi-Channel Color Normalization
+The original BGR image is split into its three channels with `cv2.split`. Each channel is passed independently through `cv2.equalizeHist`, which stretches that channel's histogram so dark pixels become darker and bright pixels become brighter. The three equalized channels are merged back with `cv2.merge` to produce the normalized color image that drives every subsequent segmentation step.
+
+### Part 3 — Threshold-Based Segmentation
+The normalized image is converted to grayscale with `cv2.cvtColor(..., COLOR_BGR2GRAY)`, then:
+- **Otsu's global thresholding:** `cv2.threshold(..., 0, 255, THRESH_BINARY + THRESH_OTSU)` picks a single optimal cutoff from the bimodal intensity histogram.
+- **Adaptive Gaussian thresholding:** `cv2.adaptiveThreshold(..., ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, blockSize=11, C=2)` thresholds each pixel against a Gaussian-weighted local window so uneven lighting is handled locally.
+
+For each method the binary mask is saved, and a foreground extraction is built with `cv2.bitwise_and(normalized_image, normalized_image, mask=...)` and saved as well.
+
+### Part 4 — K-Means Clustering Segmentation
+The normalized image is converted to HSV (`COLOR_BGR2HSV`) and reshaped into an `(H*W, 3)` float32 array of pixel triples. `cv2.kmeans` is called for `K = 3, 4, 5` with `KMEANS_RANDOM_CENTERS` and `attempts=10`. After each call the cluster indices are reordered by ascending centroid V (brightness) so cluster 0 is always the darkest and cluster K-1 is always the brightest — this makes the cluster index stable across runs and meaningful to the user.
+
+For every K the script saves:
+- a `quantized.png` preview of the whole image colored by its cluster centroid (for comparing Ks at a glance),
+- a binary 0/255 mask per cluster (so the figure-bearing cluster can be identified visually),
+- the corresponding foreground extraction per cluster.
+
+Finally, two constants `OPTIMAL_K` and `FIGURE_CLUSTER` drive a single re-run of K-Means at the chosen K, and the final `HW1_IMG_CS898BA_kmeans_mask.png` (figure = 255, everything else = 0) and `HW1_IMG_CS898BA_kmeans_foreground.png` are written using the same naming convention as Otsu and Adaptive.
+
+### Part 5 — Evaluation
+For the HW1 vs HW2 comparison the script re-creates the HW1 adaptive binary by running `cv2.adaptiveThreshold` directly on the **raw** grayscale image (not the equalized one) with identical parameters, and saves it as `HW1_IMG_CS898BA_hw1_binary.png`. This isolates per-channel histogram equalization as the only variable between the two adaptive outputs. The qualitative discussion of the three HW2 methods and the HW1 vs HW2 comparison is in [Discussions](#segmentation-methods--pros-cons-and-which-wins-for-this-image-hw2-part-5).
 
 # Setting up environment
 - Install Python libraries
@@ -124,3 +150,24 @@ As the sigma value increases, the images lose more and more details like edges a
 - *Cons:* May produce thicker edges, sensitive to noise.
 
 For this image set, Sobel is the best because it provides clear edges out of the most images, while Laplacian and Prewitt produce more noise and Canny misses some edges in the blurred images. However, for bright images, Prewitt can perform better than Sobel because Sobel produce too many edges.
+
+### Segmentation methods — pros, cons, and which wins for this image (HW2 Part 5)
+
+None of the three methods captures the figure as a single connected region — it is split into disconnected segments in every output and all three masks pull in background pixels.
+
+**Otsu's global thresholding**
+- *Pros:* Smoothest mask of the three with the least high-frequency noise, so the large shapes of the figure stay readable.
+- *Cons:* Global cutoff classifies the houses, porch, and sky as white too, and the figure fragments wherever its brightness crosses the threshold.
+
+**Adaptive Gaussian thresholding**
+- *Pros:* Sensitive to local intensity changes, so it traces the figure's silhouette and tolerates uneven lighting.
+- *Cons:* Output is almost pure salt-and-pepper — leaves, porch boards, shingles, and brick mortar all become speckle, burying the figure in noise.
+
+**K-Means in HSV (K = `OPTIMAL_K`)**
+- *Pros:* Clustering in HSV groups pixels by color, so the figure is the dominant content of the chosen cluster — relatively the best of the three.
+- *Cons:* Background houses, trees, and foliage with a similar color cast still land in the figure cluster, the figure is still fragmented, and edges are blocky.
+
+**Best for this image: K-Means, but only relatively.** It is the only one where the figure is the dominant content of the mask, but it is not a clean segmentation — background houses still leak in and the figure itself is fragmented. Otsu is the runner-up on cleanliness but treats too much of the bright background as foreground. Adaptive is unusable as a standalone segmentation without heavy morphological cleanup.
+
+### Effect of per-channel histogram equalization (HW1 vs HW2)
+HW1's adaptive binary used the raw grayscale; HW2's adaptive uses the equalized grayscale. Per-channel histogram equalization redistributes intensities so dark, low-variation regions get stretched into a usable range, which gives the local Gaussian window more consistent statistics. HW2's adaptive mask therefore looks cleaner than HW1's: fewer arbitrary speckles in shadowed background and a more coherent silhouette around the figure. The same stretch sharpens the global intensity histogram, which makes Otsu's automatic cutoff land on a meaningful valley instead of collapsing the image into a near-uniform mask, and it helps K-Means by widening color separation between the figure and the background.

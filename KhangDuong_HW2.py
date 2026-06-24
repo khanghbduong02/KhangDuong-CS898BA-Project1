@@ -31,13 +31,13 @@ gray_image = cv2.cvtColor(normalized_image, cv2.COLOR_BGR2GRAY)
 
 # 1. Otsu's Global Thresholding
 ret, otsu_thresholded = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-cv2.imwrite('HW1_IMG_CS898BA_otsu_thresholded.png', otsu_thresholded)
+cv2.imwrite('HW1_IMG_CS898BA_otsu_mask.png', otsu_thresholded)
 otsu_foreground = cv2.bitwise_and(normalized_image, normalized_image, mask=otsu_thresholded)
 cv2.imwrite('HW1_IMG_CS898BA_otsu_foreground.png', otsu_foreground)
 
 # 2. Adaptive Thresholding
 adaptive_thresholded = cv2.adaptiveThreshold(gray_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-cv2.imwrite('HW1_IMG_CS898BA_adaptive_thresholded.png', adaptive_thresholded)
+cv2.imwrite('HW1_IMG_CS898BA_adaptive_mask.png', adaptive_thresholded)
 adaptive_foreground = cv2.bitwise_and(normalized_image, normalized_image, mask=adaptive_thresholded)
 cv2.imwrite('HW1_IMG_CS898BA_adaptive_foreground.png', adaptive_foreground)
 
@@ -98,3 +98,36 @@ kmeans_mask = np.where(label_map == FIGURE_CLUSTER, 255, 0).astype(np.uint8)
 cv2.imwrite('HW1_IMG_CS898BA_kmeans_mask.png', kmeans_mask)
 kmeans_foreground = cv2.bitwise_and(normalized_image, normalized_image, mask=kmeans_mask)
 cv2.imwrite('HW1_IMG_CS898BA_kmeans_foreground.png', kmeans_foreground)
+
+# Part 5: Evaluation and Analysis
+# Re-create the HW1 binary mask (adaptive Gaussian threshold on the RAW grayscale image,
+# without the per-channel histogram equalization from Part 2) so we have a like-for-like
+# baseline to compare HW2's adaptive output against.
+raw_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+hw1_binary_image = cv2.adaptiveThreshold(
+    src=raw_gray,
+    maxValue=255,
+    adaptiveMethod=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    thresholdType=cv2.THRESH_BINARY,
+    blockSize=11,
+    C=2
+)
+cv2.imwrite('HW1_IMG_CS898BA_binary.png', hw1_binary_image)
+
+# 1. Qualitative Analysis
+# None of the three methods captures the figure as a single connected region - it is split into disconnected segments in every output and all three masks pull in background pixels.
+
+# Otsu:
+# pros: Smoothest mask of the three with a little noise, so the large shapes of the figure stay readable.
+# cons: Global cutoff classifies the ground, houses, and sky as white too, and the figure fragments wherever its brightness crosses the threshold.
+
+# Adaptive:
+# pros: Sensitive to local intensity changes, so it traces the figure's silhouette and tolerates uneven lighting.
+# cons: Output is almost pure salt-and-pepper - grass, houses, cars, trees, and other details all become speckle, burying the figure in noise.
+
+# K-means:
+# pros: Clustering in HSV groups pixels by color, so the figure is the dominant content of the chosen cluster - the best of the three.
+# cons: A bit background houses, trees, and foliage with a similar color cast still land in the figure cluster, the figure is still fragmented, and edges are blocky.
+
+# Compare to HW1:
+# HW1's adaptive binary used the raw grayscale; HW2's uses the equalized grayscale. Per-channel histogram equalization redistributes intensities so all dark or low-variation regions get stretched into a usable range, which gives the local Gaussian window more consistent statistics. HW2's adaptive mask therefore looks cleaner than HW1's: fewer arbitrary speckles in shadowed background and a more coherent silhouette around the figure. The same stretch sharpens the global intensity histogram, which makes Otsu's automatic cutoff land on a meaningful valley instead of collapsing the image into a near-uniform mask, and it helps K-means by widening color separation between the figure and the background.
