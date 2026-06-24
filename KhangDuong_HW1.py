@@ -376,7 +376,7 @@ for plot in readme_samples:
 # Update the README to display the selected plots under "# Output Examples",
 # preserving any sections (e.g. "# Discussions") that follow.
 README_PATH = 'README.md'
-README_MARKER = '# Output Examples'
+README_MARKER = '---\n\n# Output Examples'
 if os.path.exists(README_PATH):
     with open(README_PATH, 'r', encoding='utf-8') as f:
         readme_content = f.read()
