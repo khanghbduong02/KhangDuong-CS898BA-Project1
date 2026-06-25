@@ -187,3 +187,35 @@ metrics = {
 print('Quantitative Comparison against Ground Truth')
 for method_name, result in metrics.items():
     print(f"{method_name}: IoU={result['IoU']:.4f}, Dice={result['Dice']:.4f}")
+
+# 3. Visualization
+# Build side-by-side comparison for README.
+# First row: Original, Normalized, Ground Truth
+# Second row: Otsu Mask, Adaptive Mask, K-Means Mask
+comparison_images = [
+    ('Original', cv2.cvtColor(image, cv2.COLOR_BGR2RGB)),
+    ('Normalized', cv2.cvtColor(normalized_image, cv2.COLOR_BGR2RGB)),
+    ('Ground Truth', CVAT_mask_binary),
+    ('Otsu Mask', otsu_thresholded),
+    ('Adaptive Mask', adaptive_thresholded),
+    ('K-Means Mask', kmeans_mask),
+]
+
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+BG_COLOR = '#363636'
+TEXT_COLOR = 'white'
+
+fig.patch.set_facecolor(BG_COLOR)
+
+for ax, (title, img) in zip(axes.flatten(), comparison_images):
+    if img.ndim == 2:
+        ax.imshow(img, cmap='gray')
+    else:
+        ax.imshow(img)
+    ax.set_title(title, color=TEXT_COLOR)
+    ax.set_facecolor(BG_COLOR)
+    ax.axis('off')
+
+plt.tight_layout()
+plt.savefig('HW1_IMG_CS898BA_segmentation_comparison.png', dpi=200, bbox_inches='tight')
+plt.close(fig)
