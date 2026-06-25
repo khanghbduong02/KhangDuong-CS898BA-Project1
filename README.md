@@ -109,7 +109,7 @@ python -u KhangDuong_HW1.py
 
 ---
 
-# Output Examples
+# HW 1 Output Examples
 
 ![HW1_IMG_CS898BA_binary_blurred_sigma1.5_plot.png](plots/HW1_IMG_CS898BA_binary_blurred_sigma1.5_plot.png)
 
@@ -122,6 +122,12 @@ python -u KhangDuong_HW1.py
 ![HW1_IMG_CS898BA_equalized_transformed_1_blurred_sigma3.0_plot.png](plots/HW1_IMG_CS898BA_equalized_transformed_1_blurred_sigma3.0_plot.png)
 
 ![HW1_IMG_CS898BA_CIELAB_blurred_sigma0.5_plot.png](plots/HW1_IMG_CS898BA_CIELAB_blurred_sigma0.5_plot.png)
+
+---
+
+## HW 2 Segmentation Comparison
+
+![HW1_IMG_CS898BA_segmentation_comparison.png](HW1_IMG_CS898BA_segmentation_comparison.png)
 
 ---
 

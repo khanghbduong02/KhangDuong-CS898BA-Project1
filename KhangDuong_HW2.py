@@ -1,4 +1,5 @@
 import os
+import re
 
 import cv2
 import matplotlib.pyplot as plt
@@ -219,3 +220,25 @@ for ax, (title, img) in zip(axes.flatten(), comparison_images):
 plt.tight_layout()
 plt.savefig('HW1_IMG_CS898BA_segmentation_comparison.png', dpi=200, bbox_inches='tight')
 plt.close(fig)
+
+# Update the README to display the selected plots under "# HW 2 Segmentation Comparison",
+# preserving any sections (e.g. "# Discussions") that follow.
+README_PATH = 'README.md'
+README_MARKER = '# HW 2 Segmentation Comparison'
+
+if os.path.exists(README_PATH):
+    with open(README_PATH, 'r', encoding='utf-8') as f:
+        readme_content = f.read()
+    if README_MARKER in readme_content:
+        head, _, tail = readme_content.partition(README_MARKER)
+        next_section = re.search(r'^---\s*$', tail[1:], re.MULTILINE)
+        rest = tail[1 + next_section.start():] if next_section else ''
+        image_md = '\n\n' + "![HW1_IMG_CS898BA_segmentation_comparison.png](HW1_IMG_CS898BA_segmentation_comparison.png)" + '\n\n'
+        new_content = head + README_MARKER + image_md + rest
+        with open(README_PATH, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        print(f'Updated {README_PATH} with the segmentation comparison plot.')
+    else:
+        print(f'Marker "{README_MARKER}" not found in {README_PATH}; README not updated.')
+else:
+    print(f'{README_PATH} not found; skipping README update.')
