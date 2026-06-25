@@ -89,10 +89,10 @@ For every K the script saves:
 - a binary 0/255 mask per cluster (so the figure-bearing cluster can be identified visually),
 - the corresponding foreground extraction per cluster.
 
-Finally, two constants `OPTIMAL_K` and `FIGURE_CLUSTER` drive a single re-run of K-Means at the chosen K, and the final `HW1_IMG_CS898BA_kmeans_mask.png` (figure = 255, everything else = 0) and `HW1_IMG_CS898BA_kmeans_foreground.png` are written using the same naming convention as Otsu and Adaptive.
+Finally, after visually analyze the masks, two constants `OPTIMAL_K` and `FIGURE_CLUSTER` drive a single re-run of K-Means at the chosen `K=5` and `FIGURE_CLUSTER=1`, and the final `HW1_IMG_CS898BA_kmeans_mask.png` (figure = 255, everything else = 0) and `HW1_IMG_CS898BA_kmeans_foreground.png` are written using the same naming convention as Otsu and Adaptive.
 
 ### Part 5 — Evaluation
-For the HW1 vs HW2 comparison the script re-creates the HW1 adaptive binary by running `cv2.adaptiveThreshold` directly on the **raw** grayscale image (not the equalized one) with identical parameters, and saves it as `HW1_IMG_CS898BA_hw1_binary.png`. This isolates per-channel histogram equalization as the only variable between the two adaptive outputs. The qualitative discussion of the three HW2 methods and the HW1 vs HW2 comparison is in [Discussions](#segmentation-methods--pros-cons-and-which-wins-for-this-image-hw2-part-5).
+For the HW1 vs HW2 comparison the script re-creates the HW1 adaptive binary by running `cv2.adaptiveThreshold` directly on the **raw** grayscale image (not the equalized one) with identical parameters, and saves it as `HW1_IMG_CS898BA_binary.png`. This isolates per-channel histogram equalization as the only variable between the two adaptive outputs. The qualitative discussion of the three HW2 methods and the HW1 vs HW2 comparison is in [Discussions](#segmentation-methods--pros-cons-and-which-wins-for-this-image-hw2-part-5).
 
 # Setting up environment
 - Install Python libraries
@@ -105,6 +105,10 @@ pip install -r requirements.txt
 - Execute the Python script
 ```bash
 python -u KhangDuong_HW1.py
+```
+or
+```bash
+python -u KhangDuong_HW2.py
 ```
 
 ---
