@@ -1,6 +1,7 @@
 import os
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 
 SEED = 42
@@ -9,7 +10,7 @@ cv2.setRNGSeed(SEED)
 # Remove all existing images in the directory that start with 'HW1_IMG_CS898BA' and end with '.png'
 # Except for the original image
 for f in os.listdir('.'):
-    if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png') and f != 'HW1_IMG_CS898BA.png':
+    if f.startswith('HW1_IMG_CS898BA') and f.endswith('.png') and f !='HW1_IMG_CS898BA.png':
         os.remove(f)
 
 
@@ -131,3 +132,58 @@ cv2.imwrite('HW1_IMG_CS898BA_binary.png', hw1_binary_image)
 
 # Compare to HW1:
 # HW1's adaptive binary used the raw grayscale; HW2's uses the equalized grayscale. Per-channel histogram equalization redistributes intensities so all dark or low-variation regions get stretched into a usable range, which gives the local Gaussian window more consistent statistics. HW2's adaptive mask therefore looks cleaner than HW1's: fewer arbitrary speckles in shadowed background and a more coherent silhouette around the figure. The same stretch sharpens the global intensity histogram, which makes Otsu's automatic cutoff land on a meaningful valley instead of collapsing the image into a near-uniform mask, and it helps K-means by widening color separation between the figure and the background.
+
+# 2. Quantitative Analysis
+CVAT_mask = cv2.imread('CVAT Segmentation/SegmentationClass/HW1_IMG_CS898BA.png', cv2.IMREAD_GRAYSCALE)
+if CVAT_mask is None:
+    raise FileNotFoundError(
+        "Ground-truth mask not found at 'CVAT Segmentation/SegmentationClass/HW1_IMG_CS898BA.png'."
+    )
+# Convert the CVAT mask to binary (0 and 1) for IoU and Dice calculations
+# Keep figure as white, background as black
+CVAT_mask_binary = np.where(CVAT_mask > 0, 255, 0).astype(np.uint8)
+cv2.imwrite("HW1_IMG_CS898BA_ground_truth.png", CVAT_mask_binary)
+
+def convert_to_binary(mask):
+    return (mask > 0).astype(np.uint8)
+
+# IoU and Dice Coefficient calculations for each method
+def calculate_iou(pred_mask, gt_mask):
+    intersection = np.logical_and(pred_mask, gt_mask)
+    union = np.logical_or(pred_mask, gt_mask)
+    iou = np.sum(intersection) / np.sum(union)
+    return iou
+
+def calculate_dice(pred_mask, gt_mask):
+    intersection = np.logical_and(pred_mask, gt_mask)
+    dice = (2 * np.sum(intersection)) / (np.sum(pred_mask) + np.sum(gt_mask))
+    return dice
+
+if CVAT_mask_binary.shape != otsu_thresholded.shape:
+    raise ValueError(
+        f"Ground-truth shape {CVAT_mask_binary.shape} does not match prediction shape {otsu_thresholded.shape}."
+    )
+
+ground_truth_mask_binary = convert_to_binary(CVAT_mask_binary)
+otsu_mask_binary = convert_to_binary(otsu_thresholded)
+adaptive_mask_binary = convert_to_binary(adaptive_thresholded)
+kmeans_mask_binary = convert_to_binary(kmeans_mask)
+
+metrics = {
+    'Otsu': {
+        'IoU': calculate_iou(otsu_mask_binary, ground_truth_mask_binary),
+        'Dice': calculate_dice(otsu_mask_binary, ground_truth_mask_binary)
+    },
+    'Adaptive': {
+        'IoU': calculate_iou(adaptive_mask_binary, ground_truth_mask_binary),
+        'Dice': calculate_dice(adaptive_mask_binary, ground_truth_mask_binary)
+    },
+    'K-Means': {
+        'IoU': calculate_iou(kmeans_mask_binary, ground_truth_mask_binary),
+        'Dice': calculate_dice(kmeans_mask_binary, ground_truth_mask_binary)
+    }
+}
+
+print('Quantitative Comparison against Ground Truth')
+for method_name, result in metrics.items():
+    print(f"{method_name}: IoU={result['IoU']:.4f}, Dice={result['Dice']:.4f}")
