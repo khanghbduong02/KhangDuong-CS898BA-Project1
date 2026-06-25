@@ -373,10 +373,10 @@ print('Plots selected for README:')
 for plot in readme_samples:
     print(' ', plot)
 
-# Update the README to display the selected plots under "# Output Examples",
+# Update the README to display the selected plots under "# HW 1 Output Examples",
 # preserving any sections (e.g. "# Discussions") that follow.
 README_PATH = 'README.md'
-README_MARKER = '# Output Examples'
+README_MARKER = '# HW 1 Output Examples'
 if os.path.exists(README_PATH):
     with open(README_PATH, 'r', encoding='utf-8') as f:
         readme_content = f.read()
