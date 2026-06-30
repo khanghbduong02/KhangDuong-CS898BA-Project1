@@ -248,21 +248,51 @@ for f in chosen_subset:
     prewitt = cv2.convertScaleAbs(prewitt_magnitude)
     cv2.imwrite(f.replace('.png', '_prewitt.png'), prewitt)
 
-# 5. Discuss the pros and cons of each edge detection technique and perform an analysis of which of these techniques works best for this image set.
-# Sobel:
-# Pros - Details edges in both horizontal and vertical directions.
-# Cons - May produce thick and/or non-connected edges, sensitive to noise.
+# 5. Discuss the pros and cons of each edge detection technique and perform an analysis of which technique works best.
+#
+# The image has fine textures (shingles, mortar, foliage) and broad structural edges (rooflines, figure silhouette).
+# The subset spans 7 color spaces and 7 blur levels, so each detector must be robust across conditions.
+#
+# Sobel (ksize=5):
+# Pros:
+# The ksize=5 kernel suppresses high-frequency texture noise (shingles, mortar, foliage) before differentiation.
+# Captures horizontal (rooflines) and vertical (wall corners) edges via gradient magnitude combination.
+# Resolves the sky/foliage boundary and figure silhouette even at sigma=3.0-3.5.
+# Cons:
+# Thickens edges — porch board seams appear as multi-pixel bands, not single-pixel curves.
+# Over-fires in the foliage on equalized/HSV images where brightness is amplified.
+#
 # Laplacian:
-# Pros - Detects edges in all directions, good for finding fine details.
-# Cons - Very sensitive to noise, may produce false edges.
+# Pros:
+# Omnidirectional — captures diagonal roof edges and the curved figure silhouette equally well.
+# Finds fine details (porch rail posts, window corners) that Sobel's larger kernel smooths away.
+# Cons:
+# Very sensitive to noise — brick, shingles, and leaves produce strong false edge responses.
+# Double-outlines every edge (zero-crossing), producing thick confusing traces in the background.
+# Output goes near-black at sigma>=3.0, losing structure that Sobel still resolves.
+#
 # Canny:
-# Pros - Good for detecting edges in noisy images, provides thin and connected edges, uses non-maximum suppression.
-# Cons - Requires tuning of threshold cutoffs, may miss weak edges or produce false edges.
+# Pros:
+# Auto-threshold via median heuristic adapts to each image's brightness across all 7 color spaces.
+# Non-maximum suppression yields single-pixel edges — the figure silhouette is clean and thin.
+# Hysteresis tracking keeps rooflines and building corners as continuous chains on mildly blurred images.
+# Cons:
+# Severely over-detects on binary images — every boundary fires both thresholds simultaneously.
+# At sigma>=2.5 the gradient collapses below the lower threshold, yielding near-empty output.
+#
 # Prewitt:
-# Pros - Simple and fast, good for detecting edges in clean images.
-# Cons - May produce thicker edges, sensitive to noise.
-
-# For this image set, Sobel is the best because it provides clear edges out of the most images, while Laplacian and Prewitt produce more noise and Canny misses some edges in the blurred images. However, for bright images, Prewitt can perform better than Sobel because Sobel produce too many edges.
+# Pros:
+# Uniform 3x3 kernel prevents Sobel's over-detection in high-luminance areas (porch, bright sky strip).
+# Comparable to Sobel for broad structural edges on unblurred or mildly blurred images.
+# Cons:
+# No noise suppression — shingles and foliage create dense spurious edges worse than Sobel.
+# Gradient magnitude drops significantly at sigma>=2.0, falling noticeably behind Sobel.
+#
+# Winner: Sobel (ksize=5) performs best across the full 42-image subset.
+# Laplacian amplifies texture noise the most and fails at high blur.
+# Canny is best on clean images but breaks on binary images and at sigma>=2.5.
+# Prewitt is close to Sobel on unblurred images but degrades faster past sigma=2.0.
+# On equalized and HSV images Prewitt locally outperforms Sobel, but not across the full subset.
 
 # 6. Save each image before and after adding edges with each technique.
 # Already done in the code in Part 4.

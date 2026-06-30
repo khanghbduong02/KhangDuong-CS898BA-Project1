@@ -138,28 +138,42 @@ python -u KhangDuong_HW2.py
 # Discussions
 
 ### Effect of Gaussian blur σ (Part 2.8)
-Low sigma values like 0.5 and 1.0 helps in smoothing the images while preserving most of the details.
-As the sigma value increases, the images lose more and more details like edges and textures, which makes it harder to detect edges later on.
+
+The image is an outdoor scene containing a person (figure) in the foreground, residential buildings, a porch, an open sky region, and trees with dense foliage — a combination of fine-grained high-frequency textures (brick mortar, shingles, leaf clutter, porch boards) and broad structural edges (rooflines, building corners, the figure's silhouette against the house wall).
+
+| σ | Observable effect on this image |
+|---|---|
+| 0.5 | Nearly imperceptible. Fine details — brick mortar lines, porch board seams, individual leaf edges — are fully intact. Only high-frequency sensor noise is reduced. |
+| 1.0 | Slight smoothing. Structural edges (rooflines, building corners, figure silhouette) remain crisp; most texture detail is preserved. |
+| 1.5 | Fine textures (shingle patterns, leaf veins) begin to merge. Broad structural edges stay clear but porch board separations start narrowing. |
+| 2.0 | Shingle and mortar detail largely gone. Porch board separations close to zero. The foliage background becomes a blurred mass rather than individual leaves. |
+| 2.5 | Only the strongest edges survive — roofline against sky, building wall corners, figure's outer contour. Most interior texture is smoothed away. |
+| 3.0 | Even moderate structural features (window frames, porch rail posts) start to blur. The scene simplifies into blocks of color with gradual transitions. |
+| 3.5 | Heavy smoothing. The figure and background merge at soft boundaries; nearly all texture that would support edge detection is lost. Only the broadest luminance gradients (sky vs. tree canopy, figure vs. house wall) remain detectable. |
+
+The practical consequence for edge detection is that methods relying on a small kernel (Prewitt 3×3, Laplacian) lose meaningful signal earlier (around σ≥2.0) than methods with larger effective support (Sobel ksize=5, Canny with hysteresis), which can still resolve the building outlines and figure silhouette up to σ=3.0.
 
 ### Edge detection — pros, cons, and which wins for this set (Part 3.5)
 
-**Sobel**
-- *Pros:* Details edges in both horizontal and vertical directions.
-- *Cons:* May produce thick and/or non-connected edges, sensitive to noise.
+The image mixes three region types that stress edge detectors differently: (1) fine-grained, high-frequency textures (brick mortar, shingles, leaf clutter, porch boards), (2) broad structural edges (rooflines, building corners, the figure's silhouette against the house wall), and (3) the full range of color-space conversions and Gaussian blurs up to σ=3.5 applied in Parts 2.6 and 2.8.
+
+**Sobel (ksize=5)**
+- *Pros:* The ksize=5 kernel provides built-in Gaussian-style weighting that suppresses high-frequency texture noise (brick, shingles, foliage) before differentiation. Horizontal and vertical responses are computed separately then combined via gradient magnitude, cleanly capturing both axis-aligned structural edges — rooflines and building walls. Degrades gracefully with increasing blur: even at σ=3.0–3.5 it still resolves the sky/tree-canopy boundary and the figure's outer silhouette because those gradients are broad enough to survive the smoothing.
+- *Cons:* The wider kernel thickens edges — porch board seams appear as two-to-three-pixel bands rather than single-pixel curves, visible especially on binary and high-contrast images. On the equalized and HSV color-space images where brightness is amplified, it over-fires in the foliage, producing a dense web of spurious edges that can mask true building outlines.
 
 **Laplacian**
-- *Pros:* Detects edges in all directions, good for finding fine details.
-- *Cons:* Very sensitive to noise, may produce false edges.
+- *Pros:* The second derivative is omnidirectional, capturing diagonal roof edges and the curved figure silhouette equally well without summing two oriented responses. On low-σ images it finds fine details like porch rail posts and window frame corners that Sobel's larger kernel smooths away.
+- *Cons:* Extremely sensitive to noise — brick mortar, leaf clutter, and shingle patterns all produce strong responses even on the original unblurred image, turning the background into a speckle field. Zero-crossing behavior double-outlines every edge, producing thick, confusing traces in the high-texture background. Signal degrades faster than Sobel with increasing blur: at σ≥3.0 the output is near-black for most of the image, losing structural information that Sobel still resolves.
 
 **Canny**
-- *Pros:* Good for detecting edges in noisy images, provides thin and connected edges, uses non-maximum suppression.
-- *Cons:* Requires tuning of threshold cutoffs, may miss weak edges or produce false edges.
+- *Pros:* The auto-threshold using the per-image median heuristic (lower=(1−0.33)·median, upper=(1+0.33)·median) adapts to each color-space variant's brightness — important because binary images have a near-zero median while equalized images are significantly brighter. Non-maximum suppression yields single-pixel-wide edges; the figure's silhouette against the house wall is a clean, thin curve on unblurred images. Hysteresis tracking keeps the roofline and building corners as continuous chains on clean or mildly blurred images.
+- *Cons:* On binary color-space images the entire scene is maximum-contrast black-and-white, causing both thresholds to fire simultaneously across every pattern boundary — severe over-detection results. At σ≥2.5 gradient amplitude collapses below the lower threshold over most of the image, yielding only isolated fragments; it misses the foliage boundary and porch details entirely. The single threshold pair computed from the global median simultaneously suppresses weak-but-real edges in the figure while accepting noise in the multi-tone foliage (this scene's multi-modal histogram breaks the heuristic's unimodal assumption).
 
 **Prewitt**
-- *Pros:* Simple and fast, good for detecting edges in clean images.
-- *Cons:* May produce thicker edges, sensitive to noise.
+- *Pros:* The uniform 3×3 kernel responds more linearly to intensity changes than Sobel's center-weighted kernel. On the equalized and brightness-amplified color-space images this prevents Sobel's tendency to over-detect in high-luminance areas (porch surface, sky strip above the roofline). Performs comparably to Sobel for the broadest structural edges on unblurred or mildly blurred images.
+- *Cons:* The 3×3 kernel provides no noise suppression: brick, shingle, and leaf textures create dense spurious edges worse than Sobel's. Degradation with blur is steeper — at σ≥2.0 gradient magnitude drops significantly and output is noticeably weaker than Sobel across the same images. Edge thickness is intermediate: thicker than Canny's single-pixel traces, not as well-supported as Sobel's gradients.
 
-For this image set, Sobel is the best because it provides clear edges out of the most images, while Laplacian and Prewitt produce more noise and Canny misses some edges in the blurred images. However, for bright images, Prewitt can perform better than Sobel because Sobel produce too many edges.
+**Best for this image set: Sobel (ksize=5).** The 42-image subset spans 7 color spaces × 7 blur levels, requiring robustness across a wide range of conditions. Sobel's 5×5 kernel inherently handles the fine texture noise from brick, shingles, and foliage while resolving the broad structural edges (rooflines, figure silhouette, building corners) that survive into the higher-blur images. Laplacian is the weakest at high blur and amplifies texture noise the most for this specific scene. Canny produces the cleanest single-pixel edges on unblurred images but fails on the binary color-space subset (over-detection) and degrades to near-empty output at σ≥2.5. Prewitt is a close second on unblurred, non-equalized images but falls off quickly past σ=2.0 due to its smaller kernel. On the equalized and HSV images specifically, Prewitt edges out Sobel in the brightest regions because it does not amplify high-luminance gradients as aggressively — but this narrow advantage does not outweigh Sobel's consistent performance across the majority of the blurred images in the chosen subset.
 
 ### Segmentation methods — pros, cons, and which wins for this image (HW2 Part 5)
 
