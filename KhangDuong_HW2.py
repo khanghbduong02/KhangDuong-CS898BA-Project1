@@ -86,6 +86,9 @@ for k in range(3, 6):
 
 # Select the optimal K and the cluster that captures the "unknown figure".
 # Inspect the *_quantized.png and *_clusterN_mask.png outputs above, then set these.
+# K=3: Too coarse — the figure merges with similarly-toned background regions and cannot be isolated.
+# K=4: Better separation, but the figure still shares a cluster with background elements of similar HSV.
+# K=5: A dedicated cluster (index 1 by brightness order) emerges where the figure is the dominant content.
 OPTIMAL_K = 5
 FIGURE_CLUSTER = 1
 
@@ -119,17 +122,20 @@ cv2.imwrite('HW1_IMG_CS898BA_binary.png', hw1_binary_image)
 # 1. Qualitative Analysis
 # None of the three methods captures the figure as a single connected region - it is split into disconnected segments in every output and all three masks pull in background pixels.
 
-# Otsu:
-# pros: Smoothest mask of the three with a little noise, so the large shapes of the figure stay readable.
-# cons: Global cutoff classifies the ground, houses, and sky as white too, and the figure fragments wherever its brightness crosses the threshold.
+# Otsu (IoU=0.0217, Dice=0.0424):
+# Pros: Smoothest mask of the three with little noise, so the large shapes of the figure stay readable.
+# Cons: Global cutoff classifies the ground, houses, and sky as white too, fragmenting the figure wherever its brightness crosses the threshold.
+# The near-zero IoU of 0.0217 confirms that Otsu flags most of the bright background as foreground, overwhelming the figure region.
 
-# Adaptive:
-# pros: Sensitive to local intensity changes, so it traces the figure's silhouette and tolerates uneven lighting.
-# cons: Output is almost pure salt-and-pepper - grass, houses, cars, trees, and other details all become speckle, burying the figure in noise.
+# Adaptive (IoU=0.0518, Dice=0.0986):
+# Pros: Sensitive to local intensity changes, so it traces the figure's silhouette and tolerates uneven lighting.
+# Cons: Output is almost pure salt-and-pepper - grass, houses, cars, trees, and other details all become speckle, burying the figure in noise.
+# IoU of 0.0518 is marginally better than Otsu, but the near-total speckle makes the mask unusable without morphological post-processing.
 
-# K-means:
-# pros: Clustering in HSV groups pixels by color, so the figure is the dominant content of the chosen cluster - the best of the three.
-# cons: A bit background houses, trees, and foliage with a similar color cast still land in the figure cluster, the figure is still fragmented, and edges are blocky.
+# K-Means (IoU=0.2158, Dice=0.3551):
+# Pros: Clustering in HSV groups pixels by color, so the figure is the dominant content of the chosen cluster - the best of the three.
+# Cons: Some background elements with a similar color cast still land in the figure cluster, the figure is still fragmented, and edges are blocky.
+# IoU=0.2158 and Dice=0.3551 confirm K-Means is clearly the strongest, though still far from a clean segmentation.
 
 # Compare to HW1:
 # HW1's adaptive binary used the raw grayscale; HW2's uses the equalized grayscale. Per-channel histogram equalization redistributes intensities so all dark or low-variation regions get stretched into a usable range, which gives the local Gaussian window more consistent statistics. HW2's adaptive mask therefore looks cleaner than HW1's: fewer arbitrary speckles in shadowed background and a more coherent silhouette around the figure. The same stretch sharpens the global intensity histogram, which makes Otsu's automatic cutoff land on a meaningful valley instead of collapsing the image into a near-uniform mask, and it helps K-means by widening color separation between the figure and the background.
