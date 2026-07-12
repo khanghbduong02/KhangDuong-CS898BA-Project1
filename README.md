@@ -179,19 +179,24 @@ The image mixes three region types that stress edge detectors differently: (1) f
 
 None of the three methods captures the figure as a single connected region — it is split into disconnected segments in every output and all three masks pull in background pixels.
 
-**Otsu's global thresholding**
+**Otsu's global thresholding (IoU=0.0217, Dice=0.0424)**
 - *Pros:* Smoothest mask of the three with the least high-frequency noise, so the large shapes of the figure stay readable.
 - *Cons:* Global cutoff classifies the houses, porch, and sky as white too, and the figure fragments wherever its brightness crosses the threshold.
+- The near-zero IoU of 0.0217 confirms that Otsu flags most of the bright background as foreground, overwhelming the figure region.
 
-**Adaptive Gaussian thresholding**
+**Adaptive Gaussian thresholding (IoU=0.0518, Dice=0.0986)**
 - *Pros:* Sensitive to local intensity changes, so it traces the figure's silhouette and tolerates uneven lighting.
 - *Cons:* Output is almost pure salt-and-pepper — leaves, porch boards, shingles, and brick mortar all become speckle, burying the figure in noise.
+- IoU of 0.0518 is marginally better than Otsu, but the near-total speckle makes the mask unusable without morphological post-processing.
 
-**K-Means in HSV (K = `OPTIMAL_K`)**
+**K-Means in HSV (K=5, IoU=0.2158, Dice=0.3551)**
 - *Pros:* Clustering in HSV groups pixels by color, so the figure is the dominant content of the chosen cluster — relatively the best of the three.
 - *Cons:* Background houses, trees, and foliage with a similar color cast still land in the figure cluster, the figure is still fragmented, and edges are blocky.
+- IoU=0.2158 and Dice=0.3551 confirm K-Means is clearly the strongest of the three, though still far from a clean segmentation.
 
-**Best for this image: K-Means, but only relatively.** It is the only one where the figure is the dominant content of the mask, but it is not a clean segmentation — background houses still leak in and the figure itself is fragmented. Otsu is the runner-up on cleanliness but treats too much of the bright background as foreground. Adaptive is unusable as a standalone segmentation without heavy morphological cleanup.
+**Why K=5:** At K=3 the clusters are too coarse and the figure merges with similarly-toned background regions. At K=4 separation improves but the figure still shares a cluster with background elements of similar HSV values. At K=5, a dedicated cluster (index 1 by brightness order) emerges where the figure is the dominant content, visible from the cluster mask. Increasing to K=6 or beyond begins to over-fragment the figure itself into multiple clusters, reducing overall mask coherence.
+
+**Best for this image: K-Means (K=5), but only relatively.** It is the only method where the figure is the dominant mask content and scores meaningfully above zero on both metrics (IoU=0.2158, Dice=0.3551). Otsu is the runner-up on visual cleanliness but its IoU of 0.0217 shows it largely captures background rather than the figure. Adaptive's IoU of 0.0518 reflects marginal improvement but the salt-and-pepper output is unusable without heavy morphological cleanup.
 
 ### Effect of per-channel histogram equalization (HW1 vs HW2)
 HW1's adaptive binary used the raw grayscale; HW2's adaptive uses the equalized grayscale. Per-channel histogram equalization redistributes intensities so dark, low-variation regions get stretched into a usable range, which gives the local Gaussian window more consistent statistics. HW2's adaptive mask therefore looks cleaner than HW1's: fewer arbitrary speckles in shadowed background and a more coherent silhouette around the figure. The same stretch sharpens the global intensity histogram, which makes Otsu's automatic cutoff land on a meaningful valley instead of collapsing the image into a near-uniform mask, and it helps K-Means by widening color separation between the figure and the background.
