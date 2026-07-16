@@ -12,3 +12,5 @@
 | 06/19/2026 2:12 AM | how to do threshold based segmentation to get binary masks and the segmented foreground extractions | Google AI Mode | Code to generate segmentation images with OpenCV | Apply code for both Otsu's and Adaptive Thresholding |
 | 06/22/2026 10:26 PM | k means clustering segmentation with opencv | Google AI Mode | Code to do K-means clustering segmentation for a k value | Apply the code with for loop for different k values |
 | 06/22/2026 11:03 PM | how to isolate the figure cluster as a binary mask and foreground extraction | Claude | Code to get isolate clusters | Apply the code for Part 4 K-means segmentation |
+| 07/15/2026 11:00 PM | load and stratify dataset to train val and test | Google AI Mode | Code for how to use train_test_split to stratify dataset | Apply train_test_split to get 70/15/15 split |
+| 07/15/2026 11:55 PM | augmentation pytorch | ChatGPT | Explained training-set augmentation with random horizontal flips, small rotations, and brightness adjustments. | Implemented an equivalent TensorFlow/Keras training-only augmentation pipeline for Part 2. |
