@@ -1,9 +1,12 @@
 import cv2
 import numpy as np
-import tensorflow as tf
+import torch
 from pathlib import Path
 
 from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 
 
 SEED = 42
@@ -11,6 +14,12 @@ DATASET_DIR = Path(__file__).resolve().parent / "Fish" / "Fish"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 TARGET_SIZE = (128, 128)
 BATCH_SIZE = 32
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+PIN_MEMORY = DEVICE.type == "cuda"
+
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+	torch.cuda.manual_seed_all(SEED)
 
 
 # Part 2: Data Preprocessing & Augmentation
@@ -48,28 +57,59 @@ val_images, test_images, val_labels, test_labels = train_test_split(
 	random_state=SEED,
 )
 
-data_augmentation = tf.keras.Sequential(
+class FishDataset(Dataset):
+	def __init__(self, images, labels, transform=None):
+		self.images = torch.from_numpy(images).permute(0, 3, 1, 2)
+		self.labels = torch.from_numpy(labels).long()
+		self.transform = transform
+
+	def __len__(self):
+		return len(self.labels)
+
+	def __getitem__(self, index):
+		image = self.images[index]
+		if self.transform:
+			image = self.transform(image)
+		return image, self.labels[index]
+
+
+train_transform = transforms.Compose(
 	[
-		tf.keras.layers.RandomFlip("horizontal", seed=SEED),
-		tf.keras.layers.RandomRotation(0.03, fill_mode="reflect", seed=SEED),
-		tf.keras.layers.RandomBrightness(0.15, value_range=(0, 1), seed=SEED),
-	],
-	name="data_augmentation",
+		transforms.RandomHorizontalFlip(),
+		transforms.RandomRotation(10, interpolation=InterpolationMode.BILINEAR),
+		transforms.ColorJitter(brightness=0.15),
+	]
 )
 
-train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels))
-train_dataset = train_dataset.shuffle(len(train_images), seed=SEED, reshuffle_each_iteration=True)
-train_dataset = train_dataset.batch(BATCH_SIZE).map(
-	lambda image_batch, label_batch: (data_augmentation(image_batch, training=True), label_batch),
-	num_parallel_calls=tf.data.AUTOTUNE,
-).prefetch(tf.data.AUTOTUNE)
+train_dataset = FishDataset(train_images, train_labels, transform=train_transform)
+val_dataset = FishDataset(val_images, val_labels)
+test_dataset = FishDataset(test_images, test_labels)
 
-val_dataset = tf.data.Dataset.from_tensor_slices((val_images, val_labels)).batch(BATCH_SIZE)
-val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
+data_loader_generator = torch.Generator().manual_seed(SEED)
+train_loader = DataLoader(
+	train_dataset,
+	batch_size=BATCH_SIZE,
+	shuffle=True,
+	generator=data_loader_generator,
+	num_workers=0,
+	pin_memory=PIN_MEMORY,
+)
+val_loader = DataLoader(
+	val_dataset,
+	batch_size=BATCH_SIZE,
+	shuffle=False,
+	num_workers=0,
+	pin_memory=PIN_MEMORY,
+)
+test_loader = DataLoader(
+	test_dataset,
+	batch_size=BATCH_SIZE,
+	shuffle=False,
+	num_workers=0,
+	pin_memory=PIN_MEMORY,
+)
 
-test_dataset = tf.data.Dataset.from_tensor_slices((test_images, test_labels)).batch(BATCH_SIZE)
-test_dataset = test_dataset.prefetch(tf.data.AUTOTUNE)
-
+print(f"Training device: {DEVICE}")
 print(f"Training images: {len(train_images)}")
 print(f"Validation images: {len(val_images)}")
 print(f"Test images: {len(test_images)}")
