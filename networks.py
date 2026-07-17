@@ -3,7 +3,7 @@ from torch import nn
 
 
 class BaselineCNN(nn.Module):
-	def __init__(self, num_classes, image_size, input_channels=3):
+	def __init__(self, num_classes, image_size, input_channels=3, dropout_rate=0.5):
 		super().__init__()
 		if isinstance(image_size, int):
 			image_height = image_size
@@ -13,6 +13,10 @@ class BaselineCNN(nn.Module):
 
 		if image_height < 8 or image_width < 8:
 			raise ValueError("image_size must be at least 8 pixels in both dimensions.")
+		if not 0 <= dropout_rate < 1:
+			raise ValueError("dropout_rate must be between 0 (inclusive) and 1 (exclusive).")
+
+		self.dropout_rate = dropout_rate
 
 		self.features = nn.Sequential(
 			nn.Conv2d(input_channels, 32, kernel_size=3, padding=1),
@@ -33,7 +37,7 @@ class BaselineCNN(nn.Module):
 			nn.Flatten(),
 			nn.Linear(flattened_features, 256),
 			nn.ReLU(inplace=True),
-			nn.Dropout(0.5),
+			nn.Dropout(dropout_rate),
 			nn.Linear(256, num_classes),
 		)
 		self.softmax = nn.Softmax(dim=1)
