@@ -11,6 +11,12 @@ from pathlib import Path
 from networks import BaselineCNN
 from ray import tune
 from ray.tune import Callback
+from sklearn.metrics import (
+	ConfusionMatrixDisplay,
+	accuracy_score,
+	classification_report,
+	confusion_matrix,
+)
 from sklearn.model_selection import train_test_split
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
@@ -38,6 +44,7 @@ PLOTS_DIR = OUTPUT_DIR / "plots"
 BASELINE_WEIGHTS_PATH = OUTPUT_DIR / "baseline_cnn_weights.pth"
 BASELINE_PLOT_PATH = PLOTS_DIR / "HW3_baseline_training_curves.png"
 OPTIMIZED_WEIGHTS_PATH = OUTPUT_DIR / "optimized_cnn_weights.pth"
+EVALUATION_PLOT_PATH = PLOTS_DIR / "HW3_evaluation_comparison.png"
 RAY_RESULTS_DIR = OUTPUT_DIR / "ray_tune_results"
 RAY_EXPERIMENT_NAME = "fish_cnn_tuning"
 
@@ -507,3 +514,136 @@ print(
 	f"validation loss: {optimized_checkpoint['validation_loss']:.4f}, "
 	f"validation accuracy: {optimized_checkpoint['validation_accuracy']:.2%}"
 )
+
+# Part 5: Evaluation and Analysis
+def collect_predictions(data_loader, model, device=DEVICE):
+	model.eval()
+	all_labels = []
+	all_predictions = []
+
+	with torch.no_grad():
+		for image_batch, label_batch in data_loader:
+			image_batch = image_batch.to(device, non_blocking=device.type == "cuda")
+			logits = model(image_batch)
+			all_labels.append(label_batch.cpu())
+			all_predictions.append(logits.argmax(dim=1).cpu())
+
+	return torch.cat(all_labels).numpy(), torch.cat(all_predictions).numpy()
+
+
+def print_classification_results(model_name, true_labels, predicted_labels):
+	class_indices = np.arange(len(class_names))
+	print(f"\n{model_name} test classification report:")
+	print(
+		classification_report(
+			true_labels,
+			predicted_labels,
+			labels=class_indices,
+			target_names=class_names,
+			digits=4,
+			zero_division=0,
+		)
+	)
+	print(f"{model_name} test accuracy: {accuracy_score(true_labels, predicted_labels):.2%}")
+
+
+optimized_model = BaselineCNN(
+	num_classes=len(optimized_checkpoint["class_names"]),
+	image_size=optimized_checkpoint["target_size"],
+	dropout_rate=optimized_checkpoint["dropout_rate"],
+).to(DEVICE)
+optimized_model.load_state_dict(optimized_checkpoint["model_state_dict"])
+
+baseline_true_labels, baseline_predicted_labels = collect_predictions(test_loader, baseline_model)
+optimized_true_labels, optimized_predicted_labels = collect_predictions(test_loader, optimized_model)
+
+if not np.array_equal(baseline_true_labels, optimized_true_labels):
+	raise RuntimeError("Baseline and optimized evaluations used different test labels.")
+
+print_classification_results(
+	"Baseline CNN",
+	baseline_true_labels,
+	baseline_predicted_labels,
+)
+print_classification_results(
+	"Optimized CNN",
+	optimized_true_labels,
+	optimized_predicted_labels,
+)
+
+baseline_history = {
+	"train_losses": train_losses,
+	"train_accuracies": train_accuracies,
+	"val_losses": val_losses,
+	"val_accuracies": val_accuracies,
+}
+optimized_history = optimized_checkpoint["history"]
+
+
+def plot_training_metric(axis, history, training_key, validation_key, title, y_label, accuracy=False):
+	epoch_numbers = range(1, len(history[training_key]) + 1)
+	axis.plot(epoch_numbers, history[training_key], label="Training")
+	axis.plot(epoch_numbers, history[validation_key], label="Validation")
+	axis.set(title=title, xlabel="Epoch", ylabel=y_label)
+	if accuracy:
+		axis.set_ylim(0, 1)
+	axis.legend()
+	axis.grid(alpha=0.3)
+
+
+figure = plt.figure(figsize=(19, 10), constrained_layout=True)
+grid = figure.add_gridspec(2, 3, width_ratios=(1, 1, 1.25))
+
+plot_training_metric(
+	figure.add_subplot(grid[0, 0]),
+	baseline_history,
+	"train_losses",
+	"val_losses",
+	"Baseline CNN Loss",
+	"Cross-Entropy Loss",
+)
+plot_training_metric(
+	figure.add_subplot(grid[0, 1]),
+	baseline_history,
+	"train_accuracies",
+	"val_accuracies",
+	"Baseline CNN Accuracy",
+	"Accuracy",
+	accuracy=True,
+)
+plot_training_metric(
+	figure.add_subplot(grid[1, 0]),
+	optimized_history,
+	"train_losses",
+	"val_losses",
+	"Optimized CNN Loss",
+	"Cross-Entropy Loss",
+)
+plot_training_metric(
+	figure.add_subplot(grid[1, 1]),
+	optimized_history,
+	"train_accuracies",
+	"val_accuracies",
+	"Optimized CNN Accuracy",
+	"Accuracy",
+	accuracy=True,
+)
+
+confusion_matrix_axis = figure.add_subplot(grid[:, 2])
+optimized_confusion_matrix = confusion_matrix(
+	optimized_true_labels,
+	optimized_predicted_labels,
+	labels=np.arange(len(class_names)),
+)
+ConfusionMatrixDisplay(
+	confusion_matrix=optimized_confusion_matrix,
+	display_labels=class_names,
+).plot(ax=confusion_matrix_axis, cmap="Blues", colorbar=False, values_format="d")
+confusion_matrix_axis.set_title("Optimized CNN Test Confusion Matrix")
+confusion_matrix_axis.tick_params(axis="x", labelrotation=45)
+
+figure.suptitle("Homework Three: Baseline and Optimized CNN Evaluation", fontsize=16)
+figure.savefig(EVALUATION_PLOT_PATH, dpi=150)
+plt.close(figure)
+
+print(f"Saved evaluation comparison: {EVALUATION_PLOT_PATH.relative_to(OUTPUT_DIR)}")
