@@ -1,2 +1,5 @@
 *.png
+!plots/*png
 CVAT segmentation/
+Fish*
+__pycache__/

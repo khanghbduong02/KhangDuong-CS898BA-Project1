@@ -113,7 +113,9 @@ python -u KhangDuong_HW2.py
 
 ---
 
-# HW 1 Output Examples
+# Homework Output Examples
+
+## HW 1 Output Examples
 
 ![HW1_IMG_CS898BA_binary_blurred_sigma1.5_plot.png](plots/HW1_IMG_CS898BA_binary_blurred_sigma1.5_plot.png)
 
@@ -134,6 +136,10 @@ python -u KhangDuong_HW2.py
 ![HW1_IMG_CS898BA_segmentation_comparison.png](HW1_IMG_CS898BA_segmentation_comparison.png)
 
 ---
+
+## HW 3 Classification Evaluation
+
+![Homework Three baseline and optimized CNN evaluation](plots/HW3_evaluation_comparison.png)
 
 # Discussions
 
@@ -200,3 +206,39 @@ None of the three methods captures the figure as a single connected region — i
 
 ### Effect of per-channel histogram equalization (HW1 vs HW2)
 HW1's adaptive binary used the raw grayscale; HW2's adaptive uses the equalized grayscale. Per-channel histogram equalization redistributes intensities so dark, low-variation regions get stretched into a usable range, which gives the local Gaussian window more consistent statistics. HW2's adaptive mask therefore looks cleaner than HW1's: fewer arbitrary speckles in shadowed background and a more coherent silhouette around the figure. The same stretch sharpens the global intensity histogram, which makes Otsu's automatic cutoff land on a meaningful valley instead of collapsing the image into a near-uniform mask, and it helps K-Means by widening color separation between the figure and the background.
+
+---
+
+## Homework Three — Part 5: Evaluation and Analysis
+
+The baseline and selected Ray Tune model were evaluated once on the held-out 153-image test set. The selected model used learning rate 0.001, batch size 32, and dropout 0.3 because it produced the lowest validation loss (0.6864) during the fixed 20-epoch tuning experiment.
+
+### Qualitative analysis
+
+Training augmentation used random horizontal flips, rotations up to 10° clockwise and counter-clockwise, and brightness jitter of ±15%, and it was applied only to training images. These transforms expose the model to left/right orientation, small pose, and lighting variations without changing validation or test data. There was no separate no-augmentation ablation, so their individual effect cannot be measured causally. The curves show stable early learning: baseline validation loss decreased from 1.2925 to its minimum of 0.7159 at epoch 11. After that point, training loss continued downward while validation loss became less consistent, indicating that augmentation reduced but did not fully remove overfitting.
+
+Learning rate had the largest observed tuning effect. A learning rate of 0.01 with dropout 0.5 performed poorly (validation loss 1.7525 and validation accuracy 20.39%), while 0.0001 configurations converged more slowly within the fixed 20 epochs. The selected 0.001 learning rate with batch size 32 and dropout 0.3 achieved the lowest validation loss. At the same learning rate and batch size, increasing dropout to 0.5 increased the best validation loss from 0.6864 to 0.7001. The optimized model retained a train-validation gap near the end of training, but its lower validation loss led to its selection; both models achieved the same held-out test accuracy in this run.
+
+The optimized confusion matrix shows strong recognition of Discuss (28/30), Gold (28/31), and Guppy (28/29). Oscar remained the most difficult class: 14 of 22 Oscar test images were correct, while 4 were predicted as Bete, 3 as Cray, and 1 as Gold.
+
+### Quantitative comparison
+
+$$
+F_1 = 2 \cdot \frac{\mathrm{Precision} \cdot \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}
+$$
+
+| Model | Accuracy | Macro Precision | Macro Recall | Macro F1 | Weighted F1 |
+|---|---:|---:|---:|---:|---:|
+| Baseline CNN | 87.58% | 85.80% | 86.91% | 85.96% | 87.82% |
+| Optimized CNN | 87.58% | 85.94% | 86.14% | 85.51% | 87.46% |
+
+Both models achieved 87.58% test accuracy. The baseline model had a macro F1 score 0.45 percentage points higher than the optimized model.
+
+| Class | Support | Baseline Precision | Baseline Recall | Baseline F1 | Optimized Precision | Optimized Recall | Optimized F1 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Bete | 29 | 0.9600 | 0.8276 | 0.8889 | 0.8125 | 0.8966 | 0.8525 |
+| Cray | 12 | 0.6250 | 0.8333 | 0.7143 | 0.6667 | 0.8333 | 0.7407 |
+| Discuss | 30 | 0.9630 | 0.8667 | 0.9123 | 0.9655 | 0.9333 | 0.9492 |
+| Gold | 31 | 0.8485 | 0.9032 | 0.8750 | 0.9333 | 0.9032 | 0.9180 |
+| Guppy | 29 | 0.9333 | 0.9655 | 0.9492 | 0.9032 | 0.9655 | 0.9333 |
+| Oscar | 22 | 0.8182 | 0.8182 | 0.8182 | 0.8750 | 0.6364 | 0.7368 |
