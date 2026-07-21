@@ -141,6 +141,12 @@ python -u KhangDuong_HW2.py
 
 ![Homework Three baseline and optimized CNN evaluation](plots/HW3_evaluation_comparison.png)
 
+---
+
+## Extra Credit Advanced Segmentation
+
+![Extra Credit SegFormer advanced segmentation comparison](plots/EC_advanced_segmentation_comparison.png)
+
 # Discussions
 
 ### Effect of Gaussian blur σ (Part 2.8)
@@ -242,3 +248,13 @@ Both models achieved 87.58% test accuracy. The baseline model had a macro F1 sco
 | Gold | 31 | 0.8485 | 0.9032 | 0.8750 | 0.9333 | 0.9032 | 0.9180 |
 | Guppy | 29 | 0.9333 | 0.9655 | 0.9492 | 0.9032 | 0.9655 | 0.9333 |
 | Oscar | 22 | 0.8182 | 0.8182 | 0.8182 | 0.8750 | 0.6364 | 0.7368 |
+
+---
+
+## Extra Credit — Part 4: Advanced Segmentation Evaluation and Analysis
+
+The pretrained SegFormer semantic map for the original image was inspected before scoring. Its `person` region visually covered the unidentified figure, so that same class was used for Channels A, B, and C. The Homework Two ground-truth mask was used only afterward to calculate the reported IoU and Dice values.
+
+SegFormer produced a substantially more coherent figure silhouette than the Homework Two classical methods. The strongest Homework Two method, HSV K-Means with $K=5$, reached IoU $= 0.2158$ and Dice $= 0.3551$ but retained background pixels and fragmented the figure. In contrast, SegFormer reached IoU/Dice values of $0.6836 / 0.8121$ for Channel A, $0.7967 / 0.8868$ for Channel B, and $0.7482 / 0.8560$ for Channel C. The semantic model captures the head, torso, and legs as one largely connected region; the remaining errors are small false-positive regions and imperfect boundaries.
+
+Channel B, HSV V-channel normalization, performed best. Equalizing brightness made the dark foreground figure and background contrast more visible to the pretrained model. Independent RGB-channel normalization in Channel C also improved on the original image, but its stronger color changes did not match the Channel B result. These results are not a purely like-for-like comparison with Homework Two: SegFormer uses pretrained semantic features, whereas Otsu, adaptive thresholding, and K-Means are classical image-based methods without pretrained semantic knowledge.
