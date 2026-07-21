@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as functional
@@ -10,12 +11,14 @@ from transformers import SegformerForSemanticSegmentation, SegformerImageProcess
 PROJECT_DIR = Path(__file__).resolve().parent
 SOURCE_IMAGE_PATH = PROJECT_DIR / "HW1_IMG_CS898BA.png"
 OUTPUT_DIR = PROJECT_DIR / "advanced_segmentation_outputs"
+PLOTS_DIR = PROJECT_DIR / "plots"
 CHANNEL_A_PATH = OUTPUT_DIR / "HW1_IMG_CS898BA_channel_a_original_rgb.png"
 CHANNEL_B_PATH = OUTPUT_DIR / "HW1_IMG_CS898BA_channel_b_hsv_value_normalized_rgb.png"
 CHANNEL_C_PATH = OUTPUT_DIR / "HW1_IMG_CS898BA_channel_c_rgb_channel_normalized.png"
 SEMANTIC_MAP_PATH = OUTPUT_DIR / "HW1_IMG_CS898BA_channel_a_segformer_semantic_map.png"
 SEMANTIC_OVERLAY_PATH = OUTPUT_DIR / "HW1_IMG_CS898BA_channel_a_segformer_semantic_overlay.png"
 SEMANTIC_LEGEND_PATH = OUTPUT_DIR / "HW1_IMG_CS898BA_channel_a_segformer_semantic_legend.png"
+COMPARISON_PLOT_PATH = PLOTS_DIR / "EC_advanced_segmentation_comparison.png"
 GROUND_TRUTH_PATH = (
 	PROJECT_DIR
 	/ "CVAT segmentation"
@@ -242,3 +245,32 @@ else:
 			f"  {channel_name}: "
 			f"IoU={metrics['IoU']:.4f}, Dice={metrics['Dice']:.4f}"
 		)
+
+	# Part 4: Evaluation and Analysis
+	comparison_images = (
+		("Original RGB", channel_a_original_rgb),
+		("HSV V-Normalized", channel_b_hsv_value_normalized_rgb),
+		("RGB Channel-Normalized", channel_c_rgb_channel_normalized),
+		("HW2 Ground Truth", ground_truth_binary),
+		("SegFormer Channel A Mask", predicted_masks["channel_a"]),
+		("SegFormer Channel B Mask", predicted_masks["channel_b"]),
+		("SegFormer Channel C Mask", predicted_masks["channel_c"]),
+	)
+
+	figure, axes = plt.subplots(2, 4, figsize=(20, 10))
+	for axis, (title, image) in zip(axes.flat, comparison_images):
+		if image.ndim == 2:
+			axis.imshow(image, cmap="gray")
+		else:
+			axis.imshow(image)
+		axis.set_title(title)
+		axis.axis("off")
+
+	axes.flat[-1].axis("off")
+	figure.suptitle("Extra Credit: SegFormer Advanced Segmentation", fontsize=16)
+	figure.tight_layout()
+	PLOTS_DIR.mkdir(exist_ok=True)
+	figure.savefig(COMPARISON_PLOT_PATH, dpi=150, bbox_inches="tight")
+	plt.close(figure)
+
+	print(f"Saved Part 4 comparison plot: {COMPARISON_PLOT_PATH.relative_to(PROJECT_DIR)}")
